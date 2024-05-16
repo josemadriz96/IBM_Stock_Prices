@@ -1,0 +1,144 @@
+---
+title: "IBM Stock Prices"
+output: html_notebook
+---
+
+# Exploratory Data Analysis (EDA) on IBM Stock Prices
+
+## Introduction
+
+In this project, we conduct an Exploratory Data Analysis (EDA) on the historical stock prices of International Business Machines Corporation (IBM). IBM is a leading multinational technology and consulting company, widely recognized for its innovations in computing and information technology solutions.
+
+The primary objective of this EDA is to gain insights into the patterns, trends, and characteristics of IBM's stock prices over time. By analyzing the historical data, we aim to identify potential factors influencing the stock prices, understand the volatility, and explore any significant changes or anomalies in the stock market performance of IBM.
+
+Through a series of data processing steps, statistical analysis, and visualization techniques, we will delve into various aspects of IBM's stock market data. This includes handling missing values, exploring temporal trends by dividing the date column into day, month, and year, and examining key statistical summaries and visualizations.
+
+By addressing these objectives, we aim to provide valuable insights for investors, financial analysts, and stakeholders interested in understanding the dynamics of IBM's stock market performance.
+
+```{r}
+library(tidyr)
+library(dplyr)
+```
+
+#### **1. Load the Dataset**: Load the dataset as a dataframe, where the value 999 represents missing data, and display its first few rows, statistical summary, and column structure.
+
+```{r} 
+#Read csv
+IBM <- read.csv('C:/Users/josem/Downloads/IBM.csv', na.strings='999')
+
+#First rows
+head(IBM,5)
+```
+```{r}
+#Statistic Sum
+summary(IBM)
+```
+```{r}
+#Columns Structure
+str(IBM)
+```
+
+#### **2. Replace Null Values**: Replace all null values in the "Open" column with its median.
+
+```{r}
+#Identifiyin Null
+apply(is.na(IBM),2,sum)  
+```
+**Solo una columna?**
+```{r} 
+#Median Open
+mediana_open <- median(IBM$Open, na.rm = TRUE)
+
+#Replace nulls
+IBM$Open <- ifelse(is.na(IBM$Open), mediana_open, IBM$Open)
+
+#Validating nulls off
+apply(is.na(IBM),2,sum) 
+```
+#### **3. Split the Date Column**: Divide the "Date" column into "Day", "Month", and "Year".
+```{r}
+IBM<-separate(IBM, Date, into = c("day", "month", "year"), sep = "/", remove = F)
+```
+#### **4. Convert Year to Factor**: Change the "Year" column to a factor.
+```{r}
+as.factor(IBM$year)
+```
+#### **5. Return Highest Price of Each Year**: Obtain the highest price for each year.
+```{r}
+IBM %>%
+  select(year, High) %>% 
+  group_by(year) %>%
+  summarise(max_high_price = max(High))
+```
+#### **6. Show Frequency Table for Each Year**: Display a frequency table for each year.
+
+**Se puede obtener con %**
+```{r}
+IBM %>%
+  group_by(year) %>%
+  summarise(total_year = n())
+```
+#### **7. Calculate Differences**: Create a new column named "Differences" containing the difference between the highest and lowest prices.
+
+```{r}
+IBM <- mutate(IBM,Differences=High-Low)
+
+print(IBM)
+```
+#### **8. Sort Dataset**: Sort the dataset in ascending order based on the "Differences" column.
+```{r}
+IBM <- sort_by(IBM,IBM$Differences)
+
+print(IBM)
+```
+
+#### **9. Statistical Summary by Year**: Display a statistical summary of the dataset for each year, including the highest opening price, lowest closing price, mean of the "Differences" column, and the number of elements for each year.
+```{r}
+IBM %>%
+  select(year,Open,Close,Differences) %>%
+  group_by(year) %>%
+  summarise(max_open_price = max(Open),
+            min_close_price = min(Close),
+            mean_diff = mean(Differences),
+            total_year_values = n())
+```
+
+#### **10. Sum of Volume**: Show the sum of the Volume variable for all years.
+```{r}
+IBM %>%
+  select(year,Volume) %>%
+  group_by(year) %>%
+  summarise(sum_volume = sum(Volume))
+```
+```{r}
+library(ggplot2)
+```
+
+**11. Histograms**: Obtain histograms for the opening and closing prices, filled based on the year.
+```{r}
+ggplot(IBM, aes(x = Open)) +
+  geom_histogram(binwidth = 20) +
+  ggtitle("Open Price by Year") +
+  facet_wrap(~ year, scales = "free_x")
+
+ggplot(IBM, aes(x = Close)) +
+  geom_histogram(binwidth = 20) +
+  ggtitle("Close Price by Year") +
+  facet_wrap(~ year, scales = "free_x")
+```
+
+#### **12. Scatter Plot with Regression Line**: Display a scatter plot between the highest and lowest prices, along with a regression line.
+```{r}
+ggplot(IBM,aes(x=High,y=Low)) + geom_point(shape=1) + geom_smooth(method = lm)
+```
+
+#### **13. Boxplot**: Obtain a boxplot of the Adj.Close variable for each year.
+```{r}
+ggplot(IBM,aes(year,Adj.Close)) + geom_boxplot()
+```
+
+#### **14. Density Plot**: Show a density plot for the Volume variable for each year.
+```{r}
+ggplot(IBM, aes(x=Volume)) + geom_density()
+```
+
